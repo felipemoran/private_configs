@@ -1,0 +1,106 @@
+# macOS cruft
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Common cache/log/session dirs
+**/Cache/
+**/cache/
+**/logs/
+**/log/
+**/tmp/
+**/sessions/
+**/Session.vim
+**/history
+**/History
+**/*_history
+
+# SQLite / lock / state files
+*.sqlite
+*.sqlite3
+*.lock
+*.swp
+*.swo
+
+# Tool-specific noise
+nvim/undo/
+nvim/swap/
+nvim/backup/
+Code/Cache/
+Code/CachedData/
+Code/Service Worker/
+Code/Session Storage/
+Code/Local Storage/
+Slack/Cache/
+Slack/Code Cache/
+
+# Raycast extensions (too heavy / machine-specific)
+raycast/extensions/
+
+# Secrets & credentials
+gh/hosts.yml
+**/credentials*
+**/secrets*
+gcloud/
+aws/
+kube/
+vault/
+npm/npmrc
+.git-credentials
+
+# Machine-specific stuff
+*.local
+*.machine
+*.backup
+
+# --- Backups / machine-generated variants
+karabiner/automatic_backups/
+jj/*.bak
+*.bak
+*.old
+*.orig
+*.tmp
+*.temp
+*~ 
+
+# --- Karabiner noise (keep your curated rules, ignore timestamps if you want)
+# If you only want your main config:
+# karabiner/assets/complex_modifications/*.json
+
+# --- Atuin
+# Receipt/state is machine-specific; keep config.toml only
+atuin/*receipt*.json
+
+# --- Fish
+# Machine-specific variables file
+fish/fish_variables
+
+# --- Sourcery
+# Auth contains your API key; keep only the project config
+sourcery/*
+!sourcery/sourcery.yaml
+
+# --- Graphite (CLI may stash tokens/sessions)
+graphite/session*
+graphite/**/credentials*
+graphite/**/secrets*
+
+# --- JGit / Git
+# If you ever keep per-machine overlays, ignore them
+git/*.local
+jgit/*.local
+
+# --- Node/TS project under tools/jj-divergent-resolver
+tools/jj-divergent-resolver/node_modules/
+tools/jj-divergent-resolver/dist/
+tools/jj-divergent-resolver/build/
+tools/jj-divergent-resolver/.eslintcache
+tools/jj-divergent-resolver/.tsbuildinfo
+tools/jj-divergent-resolver/package-lock.json
+tools/jj-divergent-resolver/pnpm-lock.yaml
+tools/jj-divergent-resolver/yarn.lock
+
+# --- Logs/caches/general state (extra belt-and-suspenders)
+**/*.log
+**/*.cache
+**/*.state

@@ -1,0 +1,14 @@
+{
+  "name": "jj-tools",
+  "version": "1.0.0",
+  "description": "Tools for working with jj version control",
+  "main": "jj_divergent_resolver.ts",
+  "scripts": {
+    "jj-divergent": "ts-node jj_divergent_resolver.ts"
+  },
+  "bin": {
+    "jj-divergent": "./jj_divergent_resolver.ts"
+  },
+  "author": "",
+  "license": "MIT"
+}
