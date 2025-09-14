@@ -19,14 +19,17 @@ alias jp='jprev'
 alias jpp='je @-- && jj'
 alias jppp='je @--- && jj'
 alias jsync='jj git fetch && jj retrunk && jj simplify && jj'
+alias jsyncdev='jj git fetch && jj retrunkdev && jj simplify && jj'
 alias jra='jj rebase -r @ -A @-'
 alias jrb='jj rebase -r @ -B @-'
 alias jdev='je DEV_CHANGES'
 alias jrepush='jj tug && jj push && jj new -d DEV_CHANGES && jj'
 alias jre='jrepush'
 alias jrm='jj rebase-main && jj desc -m "Merge with main" && jj'
+alias jrd='jj rebase-dev && jj desc -m "Merge with develop" && jj'
 alias jprep='jj prepare -r @ && jj'
 alias jpprep='jp && jprep'
+alias jprepdev='jj preparedev -r @ && jj'
 alias jfix='jj fix-pr'
 alias jfp='jj fix-pr'
 alias jdiffall='jj log -s -r "wipstack()" -T builtin_log_comfortable'
@@ -92,4 +95,6 @@ jprfridge() {
     && jj rebase -s FRIDGE -d FRIDGE- -d "${param}"
 }
 
-
+junmerge() {
+  jj rebase -s "description('WIP ALL')" -d "description('WIP ALL')- ~ $1"
+}
