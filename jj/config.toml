@@ -1,5 +1,3 @@
-#:schema https://jj-vcs.github.io/jj/latest/config-schema.json
-
 [user]
 name = "Felipe Moran"
 email = "felipe@tensor.so"
@@ -72,19 +70,15 @@ tug = ["bookmark", "move", 'glob:felipe/*', "--from", "closest_bookmark(@ ~ desc
 tug-any = ["bookmark", "move", "--from", "closest_bookmark(@ ~ description('WIP ALL')::) & stack()", "--to", "@"]
 push = ["git", "push", "-N"]
 # run after jj git fetch to update working tree
-retrunk = ["rebase", "-d", "main@origin", "-s", "stack()~stack()+~immutable()"]
-retrunkdev = ["rebase", "-d", "develop@origin", "-s", "stack()~stack()+~immutable()"]
+retrunk = ["rebase", "-d", "trunk()", "-s", "stack()~stack()+~immutable()"]
 # prepare commits for PR (needs -r flag)
-prepare = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "main@origin"]
-preparedev = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "develop@origin"]
+prepare = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "trunk()"]
 prep = ["prepare"]
-prepdev = ["preparedev"]
-preparethis = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "main@origin", "-r", "@"]
+preparethis = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "trunk()", "-r", "@"]
 prepthis = ["preparethis"]
 bc=["b", "c", "-r", "@"]
 # rebases commits also on top of main for fixing PR conflicts without rebasing the entire branch and force-pushing
-rebase-main = ["rebase", "-s", "@", "-d", "@-", "-d", "main@origin"]
-rebase-dev = ["rebase", "-s", "@", "-d", "@-", "-d", "develop@origin"]
+rebase-trunk = ["rebase", "-s", "@", "-d", "@-", "-d", "trunk()"]
 
 open = ["log", "-r", "open() & committer_date(after:'7 days ago')"]
 open-all = ["log", "-r", "open()"]

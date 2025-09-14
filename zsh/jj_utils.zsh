@@ -19,17 +19,14 @@ alias jp='jprev'
 alias jpp='je @-- && jj'
 alias jppp='je @--- && jj'
 alias jsync='jj git fetch && jj retrunk && jj simplify && jj'
-alias jsyncdev='jj git fetch && jj retrunkdev && jj simplify && jj'
 alias jra='jj rebase -r @ -A @-'
 alias jrb='jj rebase -r @ -B @-'
 alias jdev='je DEV_CHANGES'
 alias jrepush='jj tug && jj push && jj new -d DEV_CHANGES && jj'
 alias jre='jrepush'
-alias jrm='jj rebase-main && jj desc -m "Merge with main" && jj'
-alias jrd='jj rebase-dev && jj desc -m "Merge with develop" && jj'
+alias jrt='jj rebase-trunk && jj desc -m "Merge with $(jj_trunk_name)" && jj'
 alias jprep='jj prepare -r @ && jj'
 alias jpprep='jp && jprep'
-alias jprepdev='jj preparedev -r @ && jj'
 alias jfix='jj fix-pr'
 alias jfp='jj fix-pr'
 alias jdiffall='jj log -s -r "wipstack()" -T builtin_log_comfortable'
@@ -38,9 +35,24 @@ alias jdm='jj desc -m'
 alias jd='jj desc'
 alias js='jj squash'
 alias jsu='jj squash -u'
-alias jsdev='jj squash -i --into DEV_CHANGES'
+alias jsd='jj squash -i --into DEV_CHANGES'
 alias jlogfridge='jj log -r "stack(FRIDGE)"'
-alias jpark='jj new -d main@origin'
+alias jpark='jj new -d trunk()'
+
+
+jj_trunk_name() {
+  local trunk_branch
+  trunk_branch=$(jj bookmark list --all -T 'name ++ "@" ++ remote ++ "\n"')
+  if echo "$trunk_branch" | grep -q "develop@origin"; then
+    echo "develop"
+  elif echo "$trunk_branch" | grep -q "main@origin"; then
+    echo "main"
+  else
+    echo "trunk"
+  fi
+}
+
+alias jrt='jj rebase-trunk && jj desc -m "Merge with $(jj_trunk_name)" && jj'
 
 
 mkbranchname() {
@@ -93,8 +105,4 @@ jprfridge() {
 
   jj rebase -s "${param}+" -d "${param}+- ~ ${param}" \
     && jj rebase -s FRIDGE -d FRIDGE- -d "${param}"
-}
-
-junmerge() {
-  jj rebase -s "description('WIP ALL')" -d "description('WIP ALL')- ~ $1"
 }
