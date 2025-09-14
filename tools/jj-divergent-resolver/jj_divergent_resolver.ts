@@ -52,11 +52,12 @@ async function executeJjCommand({
   description?: string;
 }): Promise<string> {
   // Skip logging for common read-only commands
-  const shouldLog = !command.startsWith('jj log') && 
-                   !command.startsWith('jj op log') && 
-                   !command.startsWith('jj diff') &&
-                   !command.startsWith('jj interdiff') &&
-                   command.trim() !== 'jj';
+  // const shouldLog = !command.startsWith('jj log') &&
+  //                  !command.startsWith('jj op log') &&
+  //                  !command.startsWith('jj diff') &&
+  //                  !command.startsWith('jj interdiff') &&
+  //                  command.trim() !== 'jj';
+  const shouldLog = true
   
   if (shouldLog) {
     console.log(`💻 Executing: ${command}`);
@@ -776,25 +777,29 @@ async function processSelectedCommits(
   }
 
   // Show interdiff
-  console.log('\n🔄 Interdiff:');
+  console.log('\n🔄 Interdiff from left to right:');
   const interdiffResult = await showInterdiff({ rl, fromCommitId: commitIdLeft, toCommitId: commitIdRight, options });
 
+  console.log('\n🔄 Interdiff from right to left:');
+  const interdiffResultReverse = await showInterdiff({ rl, fromCommitId: commitIdRight, toCommitId: commitIdLeft, options });
+
   // Auto mode: if interdiff is empty, choose action based on detected issues
-  if (options.auto && interdiffResult.isEmpty) {
+  if (options.auto && (interdiffResult.isEmpty || interdiffResultReverse.isEmpty)) {
     let autoAction: InternalAction | null = null;
     
-    if (!hasIssues) {
-      // No issues detected - safe to squash
-      console.log('🤖 Auto mode: Interdiff is empty and no issues detected, automatically squashing left into right...');
-      autoAction = InternalAction.SQUASH_LEFT_INTO_RIGHT;
-    } else if (hasConflicts && !hasMergeCommits) {
-      // Conflict markers detected but no merge commits - abandon left
-      console.log('🤖 Auto mode: Interdiff is empty but conflict markers detected, automatically abandoning left commit...');
-      autoAction = InternalAction.ABANDON_LEFT;
+    const emptySide = interdiffResult.isEmpty ? 'left' : 'right';
+    const nonEmptySide = emptySide === 'left' ? 'right' : 'left';
+    if (emptySide === nonEmptySide) {
+      throw new Error('❌ Error: Empty side is the same as non-empty side, this is a bug');
+    }
+    if (!hasConflicts && !hasMergeCommits) {
+      // only squash if there are no conflicts or merge commits
+      autoAction = emptySide === 'left' ? InternalAction.SQUASH_LEFT_INTO_RIGHT : InternalAction.SQUASH_RIGHT_INTO_LEFT;
+      console.log(`🤖 Auto mode: Interdiff is empty and no issues detected, automatically squashing ${emptySide} into ${nonEmptySide}...`);
     } else {
-      // Merge commits or other complex issues - switch to manual mode
-      console.log('🤖 Auto mode: Interdiff is empty but merge commits detected - switching to manual mode');
-      console.log('🛡️  Please review the warnings above and choose an action manually');
+      // otherwise, abandon the empty side
+      autoAction = emptySide === 'left' ? InternalAction.ABANDON_LEFT : InternalAction.ABANDON_RIGHT;
+      console.log(`🤖 Auto mode: Interdiff is empty but conflict markers detected, automatically abandoning ${emptySide} commit...`);
     }
     
     if (autoAction) {
@@ -804,7 +809,7 @@ async function processSelectedCommits(
         action: autoAction, 
         commitIdLeft, 
         commitIdRight, 
-        options: { ...options, safe: false } // Disable confirmation for auto actions
+        options
       });
       
       if (result === 'restart') {
@@ -862,6 +867,15 @@ async function main(): Promise<void> {
       }
       // Otherwise restart from the beginning
     }
+
+    // Run jj simplify at the end when there's nothing more to do
+    console.log('\n🧹 Running jj simplify to clean up the repository...');
+    await executeJjCommand({
+      rl,
+      command: 'jj simplify',
+      options,
+      description: 'Simplify the repository structure'
+    });
 
   } catch (error) {
     console.error('❌ Error:', error instanceof Error ? error.message : error);
