@@ -37,7 +37,7 @@ alias js='jj squash'
 alias jsu='jj squash -u'
 alias jsd='jj squash -i --into DEV_CHANGES'
 alias jlogfridge='jj log -r "stack(FRIDGE)"'
-alias jpark='jj new -d trunk()'
+alias jpark='jj new -d "trunk()"'
 
 
 jj_trunk_name() {
