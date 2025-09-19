@@ -1,19 +1,19 @@
 #!/usr/bin/env ts-node
 
-import { execSync } from 'child_process';
-import * as readline from 'readline';
+import { execSync } from "child_process";
+import * as readline from "readline";
 
 // Action enum for type safety
 enum InternalAction {
-  ABANDON_LEFT = 'abandon_left',
-  ABANDON_RIGHT = 'abandon_right',
-  SQUASH_LEFT_INTO_RIGHT = 'squash_left_into_right',
-  SQUASH_RIGHT_INTO_LEFT = 'squash_right_into_left',
-  PRINT_STACK = 'print_stack',
-  REFRESH = 'refresh',
-  SHOW_INTERDIFF = 'show_interdiff',
-  SHOW_DIFF_LEFT = 'show_diff_left',
-  SHOW_DIFF_RIGHT = 'show_diff_right'
+  ABANDON_LEFT = "abandon_left",
+  ABANDON_RIGHT = "abandon_right",
+  SQUASH_LEFT_INTO_RIGHT = "squash_left_into_right",
+  SQUASH_RIGHT_INTO_LEFT = "squash_right_into_left",
+  PRINT_STACK = "print_stack",
+  REFRESH = "refresh",
+  SHOW_INTERDIFF = "show_interdiff",
+  SHOW_DIFF_LEFT = "show_diff_left",
+  SHOW_DIFF_RIGHT = "show_diff_right",
 }
 
 interface CommitInfo {
@@ -32,8 +32,8 @@ interface CliOptions {
 function parseCliArgs(): CliOptions {
   const args = process.argv.slice(2);
   return {
-    safe: args.includes('--safe'),
-    auto: args.includes('--auto')
+    safe: args.includes("--safe"),
+    auto: args.includes("--auto"),
   };
 }
 
@@ -44,7 +44,7 @@ async function executeJjCommand({
   rl,
   command,
   options,
-  description
+  description,
 }: {
   rl: readline.Interface | null;
   command: string;
@@ -57,28 +57,26 @@ async function executeJjCommand({
   //                  !command.startsWith('jj diff') &&
   //                  !command.startsWith('jj interdiff') &&
   //                  command.trim() !== 'jj';
-  const shouldLog = true
-  
+  const shouldLog = true;
+
   if (shouldLog) {
     console.log(`💻 Executing: ${command}`);
   }
-  
+
   if (options.safe && rl) {
-    if (!rl) throw new Error('readline interface is required');
-    const message = description 
-      ? `${description}` 
-      : `Execute command`;
-    
+    if (!rl) throw new Error("readline interface is required");
+    const message = description ? `${description}` : `Execute command`;
+
     const confirmed = await askConfirmation(rl, message);
     if (confirmed === false) {
-      throw new Error('Command execution cancelled by user');
-    } else if (confirmed === 'skip') {
-      console.log('⏭️  Command skipped');
-      return ''; // Return empty string for skipped commands
+      throw new Error("Command execution cancelled by user");
+    } else if (confirmed === "skip") {
+      console.log("⏭️  Command skipped");
+      return ""; // Return empty string for skipped commands
     }
   }
-  
-  return execSync(command, { encoding: 'utf8' });
+
+  return execSync(command, { encoding: "utf8" });
 }
 
 /**
@@ -87,24 +85,29 @@ async function executeJjCommand({
 function getDivergentChangeIds(): string[] {
   const output = execSync(
     `jj log -T 'change_id ++ "\\n"' --no-graph --color=never | sort | uniq -d`,
-    { encoding: 'utf8' }
+    { encoding: "utf8" }
   ) as string;
-  return output.split('\n').map(s => s.trim()).filter(id => id.length > 0);
+  return output
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((id) => id.length > 0);
 }
 
 /**
  * Get commit info for given change IDs
  */
 function getCommitInfoForChangeIds(changeIds: string[]): CommitInfo[] {
-  const changeIdQuery = changeIds.map(id => `change_id("${id}")`).join(' | ');
+  const changeIdQuery = changeIds.map((id) => `change_id("${id}")`).join(" | ");
   const command = `jj log -r '(${changeIdQuery}) ~ descendants((${changeIdQuery})+)' -T 'change_id ++ " " ++ commit_id ++ "\\n"' --no-graph --color=never`;
-  
-  const output = execSync(command, { encoding: 'utf8' });
-  
-  return output.split('\n').map(s => s.trim())
-    .filter(line => line.length > 0)
-    .map(line => {
-      const [changeId, commitId] = line.split(' ');
+
+  const output = execSync(command, { encoding: "utf8" });
+
+  return output
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const [changeId, commitId] = line.split(" ");
       return { changeId, commitId };
     });
 }
@@ -115,7 +118,7 @@ function getCommitInfoForChangeIds(changeIds: string[]): CommitInfo[] {
 async function isMergeCommit({
   rl,
   commitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   commitId: string;
@@ -126,10 +129,13 @@ async function isMergeCommit({
     rl,
     command,
     options,
-    description: `Check if commit ${commitId} is a merge commit`
+    description: `Check if commit ${commitId} is a merge commit`,
   });
   // If there are multiple lines (multiple parents), it's a merge commit
-  const parents = output.trim().split('\n').filter(line => line.length > 0);
+  const parents = output
+    .trim()
+    .split("\n")
+    .filter((line) => line.length > 0);
   return parents.length > 1;
 }
 
@@ -139,7 +145,7 @@ async function isMergeCommit({
 async function checkForConflicts({
   rl,
   commitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   commitId: string;
@@ -150,7 +156,7 @@ async function checkForConflicts({
     rl,
     command,
     options,
-    description: `Check commit ${commitId} for conflicts`
+    description: `Check commit ${commitId} for conflicts`,
   });
   // If output is non-empty, the commit has conflicts
   return output.trim().length > 0;
@@ -162,20 +168,38 @@ async function checkForConflicts({
 async function getFirstCommitForChangeId({
   rl,
   changeId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   changeId: string;
   options: CliOptions;
 }): Promise<string | null> {
+  // Debug: Log what we're being called with
+  // console.log(
+  //   `🐛 DEBUG: getFirstCommitForChangeId called with: "${changeId}" (length: ${changeId.length})`
+  // );
+
+  // Validate that this looks like a change ID (should be ~32 chars, not 40+ like commit ID)
+  if (changeId.length > 35) {
+    console.log(
+      `🚨 ERROR: Received what looks like a commit ID instead of change ID: ${changeId}`
+    );
+    throw new Error(
+      `Invalid change ID: received commit ID instead of change ID: ${changeId}`
+    );
+  }
+
   const command = `jj log -r 'change_id("${changeId}")' -T 'commit_id ++ "\\n"' --no-graph --color=never`;
   const output = await executeJjCommand({
     rl,
     command,
     options,
-    description: `Get commits for change ID ${changeId}`
+    description: `Get commits for change ID ${changeId}`,
   });
-  const commitIds = output.trim().split('\n').filter(id => id.length > 0);
+  const commitIds = output
+    .trim()
+    .split("\n")
+    .filter((id) => id.length > 0);
   return commitIds.length > 0 ? commitIds[0] : null;
 }
 
@@ -185,7 +209,7 @@ async function getFirstCommitForChangeId({
 async function getCommitDescription({
   rl,
   commitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   commitId: string;
@@ -196,7 +220,7 @@ async function getCommitDescription({
     rl,
     command,
     options,
-    description: `Get description for commit ${commitId}`
+    description: `Get description for commit ${commitId}`,
   });
   return output.trim();
 }
@@ -208,23 +232,23 @@ async function showInterdiff({
   rl,
   fromCommitId,
   toCommitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   fromCommitId: string;
   toCommitId: string;
   options: CliOptions;
 }): Promise<{ output: string; isEmpty: boolean }> {
-  const toolFlag = options.auto ? ' --tool=:git' : '';
+  const toolFlag = options.auto ? " --tool=:git" : "";
   const command = `jj interdiff --from ${fromCommitId} --to ${toCommitId}${toolFlag}`;
   const output = await executeJjCommand({
     rl,
     command,
     options,
-    description: 'Show differences between commits'
+    description: "Show differences between commits",
   });
   console.log(output);
-  
+
   const isEmpty = output.trim().length === 0;
   return { output, isEmpty };
 }
@@ -234,7 +258,7 @@ async function showInterdiff({
  */
 async function printCurrentOperationId({
   rl,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   options: CliOptions;
@@ -244,12 +268,11 @@ async function printCurrentOperationId({
     rl,
     command,
     options,
-    description: 'Show current operation log'
+    description: "Show current operation log",
   });
-  console.log('Current operation:');
+  console.log("Current operation:");
   console.log(output);
 }
-
 
 /**
  * Show diff of a single commit
@@ -257,7 +280,7 @@ async function printCurrentOperationId({
 async function showCommitDiff({
   rl,
   commitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   commitId: string;
@@ -268,7 +291,7 @@ async function showCommitDiff({
     rl,
     command,
     options,
-    description: `Show diff of commit ${commitId}`
+    description: `Show diff of commit ${commitId}`,
   });
   console.log(`\n📝 Diff of commit ${commitId}:`);
   console.log(output);
@@ -279,7 +302,7 @@ async function showCommitDiff({
  */
 async function printStack({
   rl,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   options: CliOptions;
@@ -289,11 +312,10 @@ async function printStack({
     rl,
     command,
     options,
-    description: 'Show commit stack'
+    description: "Show commit stack",
   });
   console.log(output);
 }
-
 
 /**
  * Rebase sequence of commits onto destination commit
@@ -302,7 +324,7 @@ async function rebaseSequence({
   rl,
   sequenceRoot,
   destination,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   sequenceRoot: string;
@@ -316,15 +338,17 @@ async function rebaseSequence({
       rl,
       command,
       options,
-      description
+      description,
     });
     if (output.trim()) {
       console.log(output);
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('Empty revision set')) {
-      console.log('ℹ️  No commits to rebase (empty revision set) - continuing...');
+    if (errorMessage.includes("Empty revision set")) {
+      console.log(
+        "ℹ️  No commits to rebase (empty revision set) - continuing..."
+      );
       return; // Ignore this error and continue
     }
     throw new Error(`Failed to rebase: ${error}`);
@@ -337,7 +361,7 @@ async function rebaseSequence({
 async function abandonCommit({
   rl,
   commitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   commitId: string;
@@ -349,7 +373,7 @@ async function abandonCommit({
     rl,
     command,
     options,
-    description
+    description,
   });
   if (output.trim()) {
     console.log(output);
@@ -363,7 +387,7 @@ async function squashCommit({
   rl,
   fromCommitId,
   intoCommitId,
-  options
+  options,
 }: {
   rl: readline.Interface | null;
   fromCommitId: string;
@@ -376,7 +400,7 @@ async function squashCommit({
     rl,
     command,
     options,
-    description
+    description,
   });
   if (output.trim()) {
     console.log(output);
@@ -387,14 +411,17 @@ async function squashCommit({
  * Ask user for confirmation with skip option
  * Returns: true = yes, false = no, 'skip' = skip this command
  */
-function askConfirmation(rl: readline.Interface, message: string): Promise<boolean | 'skip'> {
+function askConfirmation(
+  rl: readline.Interface,
+  message: string
+): Promise<boolean | "skip"> {
   return new Promise((resolve) => {
     rl.question(`${message} (y/N/s): `, (answer) => {
       const lower = answer.toLowerCase();
-      if (lower === 'y' || lower === 'yes') {
+      if (lower === "y" || lower === "yes") {
         resolve(true);
-      } else if (lower === 's' || lower === 'skip') {
-        resolve('skip');
+      } else if (lower === "s" || lower === "skip") {
+        resolve("skip");
       } else {
         resolve(false);
       }
@@ -408,52 +435,67 @@ function askConfirmation(rl: readline.Interface, message: string): Promise<boole
 async function chooseChangeId({
   rl,
   changeIds,
-  options
+  options,
 }: {
   rl: readline.Interface;
   changeIds: string[];
   options: CliOptions;
 }): Promise<string | null> {
-  console.log('\n📋 Multiple change IDs found. Please choose which one to work on:');
-  
+  console.log(
+    "\n📋 Multiple change IDs found. Please choose which one to work on:"
+  );
+
   // Get first commit and description for each change ID
-  const changeOptions: Array<{ changeId: string; commitId: string; description: string }> = [];
-  
+  const changeOptions: Array<{
+    changeId: string;
+    commitId: string;
+    description: string;
+  }> = [];
+
   for (let i = 0; i < changeIds.length; i++) {
     const changeId = changeIds[i];
     const commitId = await getFirstCommitForChangeId({ rl, changeId, options });
-    
+
     if (commitId) {
       const description = await getCommitDescription({ rl, commitId, options });
       changeOptions.push({ changeId, commitId, description });
       console.log(`${i + 1}. ${commitId} - ${description}`);
     } else {
       console.log(`${i + 1}. ${changeId} - [Failed to get commit info]`);
-      changeOptions.push({ changeId, commitId: '', description: '[Failed to get commit info]' });
+      changeOptions.push({
+        changeId,
+        commitId: "",
+        description: "[Failed to get commit info]",
+      });
     }
   }
-  
+
   // In auto mode, automatically choose the first option
   if (options.auto) {
-    console.log('\n🤖 Auto mode: Automatically choosing option 1 (first change ID)');
+    console.log(
+      "\n🤖 Auto mode: Automatically choosing option 1 (first change ID)"
+    );
     return changeIds[0];
   }
-  
+
   return new Promise((resolve) => {
-    rl.question(`\nChoose option (1-${changeIds.length}) or 'q' to quit: `, (answer) => {
-      if (answer.toLowerCase() === 'q') {
-        resolve(null);
-        return;
+    rl.question(
+      `\nChoose option (1-${changeIds.length}) or 'q' to quit: `,
+      (answer) => {
+        if (answer.toLowerCase() === "q") {
+          resolve(null);
+          return;
+        }
+
+        const choice = parseInt(answer);
+        if (choice >= 1 && choice <= changeIds.length) {
+          resolve(changeIds[choice - 1]);
+        } else {
+          console.log("Invalid choice.");
+          resolve(null);
+        }
       }
-      
-      const choice = parseInt(answer);
-      if (choice >= 1 && choice <= changeIds.length) {
-        resolve(changeIds[choice - 1]);
-      } else {
-        console.log('Invalid choice.');
-        resolve(null);
-      }
-    });
+    );
   });
 }
 
@@ -462,18 +504,18 @@ async function chooseChangeId({
  */
 function showMenu(rl: readline.Interface): Promise<string> {
   return new Promise((resolve) => {
-    console.log('\nWhat would you like to do?');
-    console.log('AL. Abandon left');
-    console.log('AR. Abandon right');
-    console.log('SL. Squash left into right');
-    console.log('SR. Squash right into left');
-    console.log('P. Print stack');
-    console.log('R. Refresh (restart from beginning)');
-    console.log('I. Show interdiff');
-    console.log('DL. Show diff of left commit');
-    console.log('DR. Show diff of right commit');
-    
-    rl.question('Choose an option: ', (answer) => {
+    console.log("\nWhat would you like to do?");
+    console.log("AL. Abandon left");
+    console.log("AR. Abandon right");
+    console.log("SL. Squash left into right");
+    console.log("SR. Squash right into left");
+    console.log("P. Print stack");
+    console.log("R. Refresh (restart from beginning)");
+    console.log("I. Show interdiff");
+    console.log("DL. Show diff of left commit");
+    console.log("DR. Show diff of right commit");
+
+    rl.question("Choose an option: ", (answer) => {
       resolve(answer.toUpperCase());
     });
   });
@@ -487,28 +529,28 @@ function normalizeAction(action: string | InternalAction): InternalAction {
   if (Object.values(InternalAction).includes(action as InternalAction)) {
     return action as InternalAction;
   }
-  
+
   // Handle string input
   const upperAction = action.toUpperCase();
-  
+
   switch (upperAction) {
-    case 'AL':
+    case "AL":
       return InternalAction.ABANDON_LEFT;
-    case 'AR':
+    case "AR":
       return InternalAction.ABANDON_RIGHT;
-    case 'SL':
+    case "SL":
       return InternalAction.SQUASH_LEFT_INTO_RIGHT;
-    case 'SR':
+    case "SR":
       return InternalAction.SQUASH_RIGHT_INTO_LEFT;
-    case 'P':
+    case "P":
       return InternalAction.PRINT_STACK;
-    case 'R':
+    case "R":
       return InternalAction.REFRESH;
-    case 'I':
+    case "I":
       return InternalAction.SHOW_INTERDIFF;
-    case 'DL':
+    case "DL":
       return InternalAction.SHOW_DIFF_LEFT;
-    case 'DR':
+    case "DR":
       return InternalAction.SHOW_DIFF_RIGHT;
     default:
       throw new Error(`Invalid action: ${action}`);
@@ -524,67 +566,111 @@ async function handleAction({
   action,
   commitIdLeft,
   commitIdRight,
-  options
+  options,
 }: {
   rl: readline.Interface;
   action: string;
   commitIdLeft: string;
   commitIdRight: string;
   options: CliOptions;
-}): Promise<boolean | 'restart'> {
+}): Promise<boolean | "restart"> {
   // Normalize action to internal action enum
   const normalizedAction = normalizeAction(action);
-  
+
   switch (normalizedAction) {
     case InternalAction.ABANDON_LEFT:
-      const confirmAbandonLeft = options.safe ? await askConfirmation(rl, `Abandon left commit (${commitIdLeft})?`) : true;
+      const confirmAbandonLeft = options.safe
+        ? await askConfirmation(rl, `Abandon left commit (${commitIdLeft})?`)
+        : true;
       if (confirmAbandonLeft) {
         await printCurrentOperationId({ rl, options });
-        await rebaseSequence({ rl, sequenceRoot: commitIdLeft, destination: commitIdRight, options });
+        await rebaseSequence({
+          rl,
+          sequenceRoot: commitIdLeft,
+          destination: commitIdRight,
+          options,
+        });
         await abandonCommit({ rl, commitId: commitIdLeft, options });
-        console.log('\nUpdated stack:');
+        console.log("\nUpdated stack:");
         await printStack({ rl, options });
-        console.log('\n🔄 Restarting from beginning due to state changes...');
-        return 'restart';
+        console.log("\n🔄 Restarting from beginning due to state changes...");
+        return "restart";
       }
       break;
 
     case InternalAction.ABANDON_RIGHT:
-      const confirmAbandonRight = options.safe ? await askConfirmation(rl, `Abandon right commit (${commitIdRight})?`) : true;
+      const confirmAbandonRight = options.safe
+        ? await askConfirmation(rl, `Abandon right commit (${commitIdRight})?`)
+        : true;
       if (confirmAbandonRight) {
         await printCurrentOperationId({ rl, options });
-        await rebaseSequence({ rl, sequenceRoot: commitIdRight, destination: commitIdLeft, options });
+        await rebaseSequence({
+          rl,
+          sequenceRoot: commitIdRight,
+          destination: commitIdLeft,
+          options,
+        });
         await abandonCommit({ rl, commitId: commitIdRight, options });
-        console.log('\nUpdated stack:');
+        console.log("\nUpdated stack:");
         await printStack({ rl, options });
-        console.log('\n🔄 Restarting from beginning due to state changes...');
-        return 'restart';
+        console.log("\n🔄 Restarting from beginning due to state changes...");
+        return "restart";
       }
       break;
 
     case InternalAction.SQUASH_LEFT_INTO_RIGHT:
-      const confirmSquashLeft = options.safe ? await askConfirmation(rl, `Squash left commit (${commitIdLeft}) into right (${commitIdRight})?`) : true;
+      const confirmSquashLeft = options.safe
+        ? await askConfirmation(
+            rl,
+            `Squash left commit (${commitIdLeft}) into right (${commitIdRight})?`
+          )
+        : true;
       if (confirmSquashLeft) {
         await printCurrentOperationId({ rl, options });
-        await rebaseSequence({ rl, sequenceRoot: commitIdLeft, destination: commitIdRight, options });
-        await squashCommit({ rl, fromCommitId: commitIdLeft, intoCommitId: commitIdRight, options });
-        console.log('\nUpdated stack:');
+        await rebaseSequence({
+          rl,
+          sequenceRoot: commitIdLeft,
+          destination: commitIdRight,
+          options,
+        });
+        await squashCommit({
+          rl,
+          fromCommitId: commitIdLeft,
+          intoCommitId: commitIdRight,
+          options,
+        });
+        console.log("\nUpdated stack:");
         await printStack({ rl, options });
-        console.log('\n🔄 Restarting from beginning due to state changes...');
-        return 'restart';
+        console.log("\n🔄 Restarting from beginning due to state changes...");
+        return "restart";
       }
       break;
 
     case InternalAction.SQUASH_RIGHT_INTO_LEFT:
-      const confirmSquashRight = options.safe ? await askConfirmation(rl, `Squash right commit (${commitIdRight}) into left (${commitIdLeft})?`) : true;
+      const confirmSquashRight = options.safe
+        ? await askConfirmation(
+            rl,
+            `Squash right commit (${commitIdRight}) into left (${commitIdLeft})?`
+          )
+        : true;
       if (confirmSquashRight) {
         await printCurrentOperationId({ rl, options });
-        await rebaseSequence({ rl, sequenceRoot: commitIdRight, destination: commitIdLeft, options });
-        await squashCommit({ rl, fromCommitId: commitIdRight, intoCommitId: commitIdLeft, options });
-        console.log('\nUpdated stack:');
+        await rebaseSequence({
+          rl,
+          sequenceRoot: commitIdRight,
+          destination: commitIdLeft,
+          options,
+        });
+        await squashCommit({
+          rl,
+          fromCommitId: commitIdRight,
+          intoCommitId: commitIdLeft,
+          options,
+        });
+        console.log("\nUpdated stack:");
         await printStack({ rl, options });
-        console.log('\n🔄 Restarting from beginning due to state changes...');
-        return 'restart';
+        console.log("\n🔄 Restarting from beginning due to state changes...");
+        return "restart";
       }
       break;
 
@@ -593,17 +679,17 @@ async function handleAction({
       break;
 
     case InternalAction.REFRESH:
-      console.log('\n🔄 Refreshing state...');
-      return 'restart';
+      console.log("\n🔄 Refreshing state...");
+      return "restart";
 
     case InternalAction.SHOW_INTERDIFF:
-      const interdiffResult = await showInterdiff({ 
-        rl, 
-        fromCommitId: commitIdLeft, 
-        toCommitId: commitIdRight, 
-        options: { ...options, auto: false } 
+      const interdiffResult = await showInterdiff({
+        rl,
+        fromCommitId: commitIdLeft,
+        toCommitId: commitIdRight,
+        options: { ...options, auto: false },
       });
-      console.log('\n🔄 Interdiff:');
+      console.log("\n🔄 Interdiff:");
       console.log(interdiffResult.output);
       break;
 
@@ -620,7 +706,7 @@ async function handleAction({
       const _exhaustiveCheck: never = normalizedAction;
       throw new Error(`Unhandled internal action: ${normalizedAction}`);
   }
-  
+
   return false;
 }
 
@@ -673,44 +759,56 @@ from the beginning to ensure fresh state, as commit IDs may have changed.
 /**
  * Process divergent commits - main logic that can be restarted
  */
-async function processDivergentCommits(rl: readline.Interface, options: CliOptions): Promise<boolean> {
-  console.log('🔍 Checking for divergent commits...');
-  
+async function processDivergentCommits(
+  rl: readline.Interface,
+  options: CliOptions
+): Promise<boolean> {
+  console.log("🔍 Checking for divergent commits...");
+
   // Get divergent change IDs
   const divergentChangeIds = getDivergentChangeIds();
-  
+
   if (divergentChangeIds.length === 0) {
-    console.log('✅ No divergent commits found.');
+    console.log("✅ No divergent commits found.");
     return true; // Exit successfully
   }
 
-  console.log(`Found ${divergentChangeIds.length} divergent change IDs:`, divergentChangeIds);
+  console.log(
+    `Found ${divergentChangeIds.length} divergent change IDs:`,
+    divergentChangeIds
+  );
 
   // Get commit info for divergent change IDs
   const commitInfos = getCommitInfoForChangeIds(divergentChangeIds);
-  
+
   if (commitInfos.length > 2) {
-    console.log('\n⚠️  More than 2 commits found for divergent change IDs.');
-    console.log('You must choose a specific change ID to work on.');
-    
+    console.log("\n⚠️  More than 2 commits found for divergent change IDs.");
+    console.log("You must choose a specific change ID to work on.");
+
     // Let user choose which change ID to work with
-    const chosenChangeId = await chooseChangeId({ rl, changeIds: Array.from(new Set(commitInfos.map(info => info.changeId))), options });
-    
+    const chosenChangeId = await chooseChangeId({
+      rl,
+      changeIds: Array.from(new Set(commitInfos.map((info) => info.changeId))),
+      options,
+    });
+
     if (!chosenChangeId) {
-      console.log('No change ID selected. Exiting.');
+      console.log("No change ID selected. Exiting.");
       return true; // Exit
     }
-    
+
     // Filter to only the chosen change ID and restart
     console.log(`\n🎯 Working with change ID: ${chosenChangeId}`);
     const filteredChangeIds = [chosenChangeId];
     const filteredCommitInfos = getCommitInfoForChangeIds(filteredChangeIds);
-    
+
     if (filteredCommitInfos.length < 2) {
-      console.error('❌ Error: Selected change ID has less than 2 commits. Cannot proceed.');
+      console.error(
+        "❌ Error: Selected change ID has less than 2 commits. Cannot proceed."
+      );
       return true; // Exit with error
     }
-    
+
     // Continue with the filtered commit infos
     const newCommitInfos = filteredCommitInfos;
     return await processSelectedCommits(rl, newCommitInfos, options);
@@ -724,12 +822,12 @@ async function processDivergentCommits(rl: readline.Interface, options: CliOptio
  * Process selected commits (extracted logic for reuse)
  */
 async function processSelectedCommits(
-  rl: readline.Interface, 
-  commitInfos: CommitInfo[], 
+  rl: readline.Interface,
+  commitInfos: CommitInfo[],
   options: CliOptions
 ): Promise<boolean> {
   if (commitInfos.length < 2) {
-    console.error('❌ Error: Less than 2 commits found. Cannot proceed.');
+    console.error("❌ Error: Less than 2 commits found. Cannot proceed.");
     return true; // Exit with error
   }
 
@@ -741,93 +839,156 @@ async function processSelectedCommits(
   console.log(`Right: ${commitInfos[1].changeId} ${commitIdRight}`);
 
   // Get and display commit descriptions
-  console.log('\n📝 Commit descriptions:');
-  const leftDescription = await getCommitDescription({ rl, commitId: commitIdLeft, options });
-  const rightDescription = await getCommitDescription({ rl, commitId: commitIdRight, options });
+  console.log("\n📝 Commit descriptions:");
+  const leftDescription = await getCommitDescription({
+    rl,
+    commitId: commitIdLeft,
+    options,
+  });
+  const rightDescription = await getCommitDescription({
+    rl,
+    commitId: commitIdRight,
+    options,
+  });
   console.log(`Left:  ${leftDescription}`);
   console.log(`Right: ${rightDescription}`);
 
   // Check for conflicts and merge commits
-  console.log('\n🔍 Checking for conflicts and merge commits...');
-  const leftHasConflicts = await checkForConflicts({ rl, commitId: commitIdLeft, options });
-  const rightHasConflicts = await checkForConflicts({ rl, commitId: commitIdRight, options });
-  const leftIsMerge = await isMergeCommit({ rl, commitId: commitIdLeft, options });
-  const rightIsMerge = await isMergeCommit({ rl, commitId: commitIdRight, options });
-  
+  console.log("\n🔍 Checking for conflicts and merge commits...");
+  const leftHasConflicts = await checkForConflicts({
+    rl,
+    commitId: commitIdLeft,
+    options,
+  });
+  const rightHasConflicts = await checkForConflicts({
+    rl,
+    commitId: commitIdRight,
+    options,
+  });
+  const leftIsMerge = await isMergeCommit({
+    rl,
+    commitId: commitIdLeft,
+    options,
+  });
+  const rightIsMerge = await isMergeCommit({
+    rl,
+    commitId: commitIdRight,
+    options,
+  });
+
   const hasConflicts = leftHasConflicts || rightHasConflicts;
   const hasMergeCommits = leftIsMerge || rightIsMerge;
   const hasIssues = hasConflicts || hasMergeCommits;
-  
+
   if (hasIssues) {
-    console.log('🚨 WARNING: Issues detected with one or more commits');
-    console.log('🚨 Squashing these commits may not be recommended');
-    
-    if (leftHasConflicts) console.log(`   - Left commit (${commitIdLeft}) has conflict markers`);
-    if (rightHasConflicts) console.log(`   - Right commit (${commitIdRight}) has conflict markers`);
-    if (leftIsMerge) console.log(`   - Left commit (${commitIdLeft}) is a merge commit`);
-    if (rightIsMerge) console.log(`   - Right commit (${commitIdRight}) is a merge commit`);
-    
+    console.log("🚨 WARNING: Issues detected with one or more commits");
+    console.log("🚨 Squashing these commits may not be recommended");
+
+    if (leftHasConflicts)
+      console.log(`   - Left commit (${commitIdLeft}) has conflict markers`);
+    if (rightHasConflicts)
+      console.log(`   - Right commit (${commitIdRight}) has conflict markers`);
+    if (leftIsMerge)
+      console.log(`   - Left commit (${commitIdLeft}) is a merge commit`);
+    if (rightIsMerge)
+      console.log(`   - Right commit (${commitIdRight}) is a merge commit`);
+
     if (leftHasConflicts || rightHasConflicts) {
-      console.log('🚨 Commits with conflict markers indicate unresolved merge conflicts');
+      console.log(
+        "🚨 Commits with conflict markers indicate unresolved merge conflicts"
+      );
     }
     if (leftIsMerge || rightIsMerge) {
-      console.log('🚨 Merge commits may contain important merge resolution history');
+      console.log(
+        "🚨 Merge commits may contain important merge resolution history"
+      );
     }
-    console.log('');
+    console.log("");
   }
 
   // Show interdiff
-  console.log('\n🔄 Interdiff from left to right:');
-  const interdiffResult = await showInterdiff({ rl, fromCommitId: commitIdLeft, toCommitId: commitIdRight, options });
+  console.log("\n🔄 Interdiff from left to right:");
+  const interdiffResult = await showInterdiff({
+    rl,
+    fromCommitId: commitIdLeft,
+    toCommitId: commitIdRight,
+    options,
+  });
 
-  console.log('\n🔄 Interdiff from right to left:');
-  const interdiffResultReverse = await showInterdiff({ rl, fromCommitId: commitIdRight, toCommitId: commitIdLeft, options });
+  console.log("\n🔄 Interdiff from right to left:");
+  const interdiffResultReverse = await showInterdiff({
+    rl,
+    fromCommitId: commitIdRight,
+    toCommitId: commitIdLeft,
+    options,
+  });
 
   // Auto mode: if interdiff is empty, choose action based on detected issues
-  if (options.auto && (interdiffResult.isEmpty || interdiffResultReverse.isEmpty)) {
+  if (
+    options.auto &&
+    (interdiffResult.isEmpty || interdiffResultReverse.isEmpty)
+  ) {
     let autoAction: InternalAction | null = null;
-    
-    const emptySide = interdiffResult.isEmpty ? 'left' : 'right';
-    const nonEmptySide = emptySide === 'left' ? 'right' : 'left';
+
+    const emptySide = interdiffResult.isEmpty ? "left" : "right";
+    const nonEmptySide = emptySide === "left" ? "right" : "left";
     if (emptySide === nonEmptySide) {
-      throw new Error('❌ Error: Empty side is the same as non-empty side, this is a bug');
+      throw new Error(
+        "❌ Error: Empty side is the same as non-empty side, this is a bug"
+      );
     }
     if (!hasConflicts && !hasMergeCommits) {
       // only squash if there are no conflicts or merge commits
-      autoAction = emptySide === 'left' ? InternalAction.SQUASH_LEFT_INTO_RIGHT : InternalAction.SQUASH_RIGHT_INTO_LEFT;
-      console.log(`🤖 Auto mode: Interdiff is empty and no issues detected, automatically squashing ${emptySide} into ${nonEmptySide}...`);
+      autoAction =
+        emptySide === "left"
+          ? InternalAction.SQUASH_LEFT_INTO_RIGHT
+          : InternalAction.SQUASH_RIGHT_INTO_LEFT;
+      console.log(
+        `🤖 Auto mode: Interdiff is empty and no issues detected, automatically squashing ${emptySide} into ${nonEmptySide}...`
+      );
     } else {
       // otherwise, abandon the empty side
-      autoAction = emptySide === 'left' ? InternalAction.ABANDON_LEFT : InternalAction.ABANDON_RIGHT;
-      console.log(`🤖 Auto mode: Interdiff is empty but conflict markers detected, automatically abandoning ${emptySide} commit...`);
+      autoAction =
+        emptySide === "left"
+          ? InternalAction.ABANDON_LEFT
+          : InternalAction.ABANDON_RIGHT;
+      console.log(
+        `🤖 Auto mode: Interdiff is empty but conflict markers detected, automatically abandoning ${emptySide} commit...`
+      );
     }
-    
+
     if (autoAction) {
       // Execute the automatic action using the existing action handler
-      const result = await handleAction({ 
-        rl, 
-        action: autoAction, 
-        commitIdLeft, 
-        commitIdRight, 
-        options
+      const result = await handleAction({
+        rl,
+        action: autoAction,
+        commitIdLeft,
+        commitIdRight,
+        options,
       });
-      
-      if (result === 'restart') {
+
+      if (result === "restart") {
         return false; // Signal restart needed
       }
       // If action completed successfully, it should have restarted already
-      throw new Error('Unexpected: Auto action should have triggered restart');
+      throw new Error("Unexpected: Auto action should have triggered restart");
     }
   }
 
   // Interactive menu loop
   while (true) {
     const action = await showMenu(rl);
-    const result = await handleAction({ rl, action, commitIdLeft, commitIdRight, options });
-    
+    const result = await handleAction({
+      rl,
+      action,
+      commitIdLeft,
+      commitIdRight,
+      options,
+    });
+
     if (result === true) {
       return true; // Exit successfully
-    } else if (result === 'restart') {
+    } else if (result === "restart") {
       return false; // Signal restart needed
     }
     // Continue loop if result === false
@@ -839,24 +1000,38 @@ async function processSelectedCommits(
  */
 async function main(): Promise<void> {
   const options = parseCliArgs();
-  
+
   // Handle help flag
-  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  if (process.argv.includes("--help") || process.argv.includes("-h")) {
     showHelp();
     return;
   }
 
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
+
+  // Handle ctrl+c and other termination signals
+  const cleanupAndExit = () => {
+    console.log("\n\n🛑 Exiting...");
+    rl.close();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", cleanupAndExit);
+  process.on("SIGTERM", cleanupAndExit);
 
   try {
     if (options.safe) {
-      console.log('🔒 Safe mode enabled - will ask for confirmation before each jj command');
+      console.log(
+        "🔒 Safe mode enabled - will ask for confirmation before each jj command"
+      );
     }
     if (options.auto) {
-      console.log('🤖 Auto mode enabled - will use git tool for interdiff and auto-squash if empty');
+      console.log(
+        "🤖 Auto mode enabled - will use git tool for interdiff and auto-squash if empty"
+      );
     }
 
     // Main processing loop - restart when needed
@@ -869,16 +1044,15 @@ async function main(): Promise<void> {
     }
 
     // Run jj simplify at the end when there's nothing more to do
-    console.log('\n🧹 Running jj simplify to clean up the repository...');
+    console.log("\n🧹 Running jj simplify to clean up the repository...");
     await executeJjCommand({
       rl,
-      command: 'jj simplify',
+      command: "jj simplify",
       options,
-      description: 'Simplify the repository structure'
+      description: "Simplify the repository structure",
     });
-
   } catch (error) {
-    console.error('❌ Error:', error instanceof Error ? error.message : error);
+    console.error("❌ Error:", error instanceof Error ? error.message : error);
   } finally {
     rl.close();
   }

@@ -58,3 +58,6 @@ jspm_packages/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc

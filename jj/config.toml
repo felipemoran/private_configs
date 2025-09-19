@@ -8,7 +8,7 @@ backend = "gpg"
 key = "F571B38795ECCCDC"
 
 [ui]
-default-command = ["log", "-r", "(stack() ~(::remote_bookmarks())) | (stack() & remote_bookmarks()) | description('WIP ALL')-", "-T", "home_log"]
+default-command = ["log", "-r", "(stack() ~(::remote_bookmarks())) | (stack() & remote_bookmarks()) | description('MEGA MERGE')-", "-T", "home_log"]
 color = "always"
 editor = "vim"
 diff-editor = "webstorm"
@@ -62,19 +62,20 @@ prune = ["abandon", "-r", "empty() & stack() & description(regex:'^$')"]
 
 up = ["edit", "@+"]
 down = ["edit", "@-"]
-simplify = ["simplify-parents", "-s", "description('WIP ALL') & stack() & mutable()"]
+simplify = ["simplify-parents", "-s", "description('MEGA MERGE') & stack() & mutable()"]
 
 # pull bookmarks from ancestors to current commit (works best when there's a single bookmark)
-#tug = ["bookmark", "move", "--from", "closest_bookmark(@- ~ description('WIP ALL')::) & bookmarks(glob:'felipe/*')", "--to", "@"]
-tug = ["bookmark", "move", 'glob:felipe/*', "--from", "closest_bookmark(@ ~ description('WIP ALL')::) & stack()", "--to", "@"]
-tug-any = ["bookmark", "move", "--from", "closest_bookmark(@ ~ description('WIP ALL')::) & stack()", "--to", "@"]
+#tug = ["bookmark", "move", "--from", "closest_bookmark(@- ~ description('MEGA MERGE')::) & bookmarks(glob:'felipe/*')", "--to", "@"]
+tug = ["bookmark", "move", 'glob:felipe/*', "--from", "closest_bookmark(@ ~ description('MEGA MERGE')::) & stack()", "--to", "@"]
+tug-any = ["bookmark", "move", "--from", "closest_bookmark(@ ~ description('MEGA MERGE')::) & stack()", "--to", "@"]
 push = ["git", "push", "-N"]
 # run after jj git fetch to update working tree
 retrunk = ["rebase", "-d", "trunk()", "-s", "stack()~stack()+~immutable()"]
+retrunk-megamerge = ['rebase', '-s', 'megamerge()', '-d', 'megamerge()-', '-d', 'heads(stack() ~ megamerge():: ~ DEV_CHANGES::)']
 # prepare commits for PR (needs -r flag)
-prepare = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "trunk()"]
+prepare = ["rebase", "-B", "description('MEGA MERGE') & stack()", "-A", "trunk()"]
 prep = ["prepare"]
-preparethis = ["rebase", "-B", "description('WIP ALL') & stack()", "-A", "trunk()", "-r", "@"]
+preparethis = ["rebase", "-B", "description('MEGA MERGE') & stack()", "-A", "trunk()", "-r", "@"]
 prepthis = ["preparethis"]
 bc=["b", "c", "-r", "@"]
 # rebases commits also on top of main for fixing PR conflicts without rebasing the entire branch and force-pushing
@@ -84,7 +85,7 @@ open = ["log", "-r", "open() & committer_date(after:'7 days ago')"]
 open-all = ["log", "-r", "open()"]
 open-stale = ["log", "-r", "open() & committer_date(before:'7 days ago')"]
 
-unmerge = ["rebase", "-s", "description('WIP ALL')", "-d", "description('WIP ALL')-"]
+unmerge = ["rebase", "-s", "description('MEGA MERGE')", "-d", "description('MEGA MERGE')-"]
 
 [revset-aliases]
 #"parents()" = "trunk()..@-"
@@ -102,7 +103,7 @@ unmerge = ["rebase", "-s", "description('WIP ALL')", "-d", "description('WIP ALL
 'stack()' = 'reachable(@, ~::trunk())'
 'stack(x)' = 'reachable(x, ~::trunk())'
 'stack(x, n)' = 'ancestors(reachable(x, ~::trunk()), n)'
-'wipstack()' = "reachable(@, ~::description('WIP ALL'))"
+'wipstack()' = "reachable(@, ~::description('MEGA MERGE'))"
 
 # The current set of "open" works. It is defined as:
 #
@@ -117,6 +118,9 @@ unmerge = ["rebase", "-s", "description('WIP ALL')", "-d", "description('WIP ALL
 #'branchdiff(x)' = 'stack(x) ~x..'
 
 'wipcurrent()' = 'stack() & description("WIP CURRENT")'
+
+'megamerge()' = 'description("MEGA MERGE")'
+
 
 [template-aliases]
 'commit_timestamp(commit)' = '''
@@ -156,19 +160,19 @@ if(
     description,
     coalesce(
         if(
-            self.contained_in('description("WIP ALL")'),
-            label("WIP_ALL", "WIP ALL")
+            self.contained_in('description("MEGA MERGE")'),
+            label("WIP_ALL", "MEGA MERGE")
         ),
         if(
-            self.contained_in('description("WIP") & description("WIP ALL")..'),
+            self.contained_in('description("WIP") & description("MEGA MERGE")..'),
             label("WIP", description.first_line())
         ),
         if(
-            self.contained_in('description("MQ") & description("WIP ALL")..'),
+            self.contained_in('description("MQ") & description("MEGA MERGE")..'),
             label("MQ", description.first_line())
             ),
         if(
-            self.contained_in('description("WIP ALL")..'),
+            self.contained_in('description("MEGA MERGE")..'),
             label("unknown", description.first_line())
 
         ),
@@ -199,12 +203,12 @@ home_log = '''
           if(
             empty,
             if(
-                self.contained_in('description("WIP ALL")'),
+                self.contained_in('description("MEGA MERGE")'),
                 label("clean_merge_all", "(no changes)"),
                 label("empty", "(no changes)")
             ),
             if(
-                self.contained_in('description("WIP ALL")'),
+                self.contained_in('description("MEGA MERGE")'),
                 label("dirty_merge_all", "(Dirty MERGE ALL)"),
                 ""
             ),
@@ -292,7 +296,7 @@ log_node = '''
 
 
 
-# TODO: highlight dirty commits not in remote and below wip all, excluding dev commits (optionally only with bookmarks)
+# TODO: highlight dirty commits not in remote and below MEGA MERGE, excluding dev commits (optionally only with bookmarks)
 
 [colors]
 "empty description placeholder" = "yellow"
